@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const { data } = await api.post('/api/auth/login', { email, password });
+            const { data } = await api.post('/api/auth/admin/login', { email, password });
 
             if (data.user.role !== 'admin') {
                 throw new Error('Unauthorized: Admin access only');

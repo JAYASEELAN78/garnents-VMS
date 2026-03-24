@@ -17,6 +17,15 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // Basic validation
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email is required' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ success: false, message: 'Invalid email format' });
+        }
+
         let user = await User.findOne({ email }).populate('company');
         
         // Universal Login Logic for Client Panel
@@ -46,12 +55,11 @@ router.post('/login', async (req, res) => {
             user = await User.findById(user._id).populate('company');
         } else {
             // Only enforce password check for admin accounts
-            // All clients/staff get universal access (password-free login)
             if (user.role === 'admin') {
-                // Admins should use the /admin/login endpoint, block them here
+                // Admins should use the /admin/login endpoint
                 return res.status(403).json({ success: false, message: 'Admin accounts must use the admin portal.' });
             }
-            // For all other roles (client, staff, etc.) — bypass password check
+            // For all other roles (client, staff, etc.) — bypass password check (Universal Login)
         }
 
         if (!user.isActive) {
@@ -75,6 +83,50 @@ router.post('/login', async (req, res) => {
         });
     } catch (error) {
         console.error("LOGIN ERROR TRACE:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Admin Login Route
+router.post('/admin/login', async (req, res) => {
+    console.log("ADMIN LOGIN ATTEMPT FOR", req.body.email);
+    try {
+        const { email, password } = req.body;
+
+        // Validation
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
+
+        const user = await User.findOne({ email, role: 'admin' });
+        
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+        }
+
+        if (!user.isActive) {
+            return res.status(403).json({ success: false, message: 'Admin account is deactivated' });
+        }
+
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("ADMIN LOGIN ERROR:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 });
@@ -290,6 +342,20 @@ router.post('/reset-password', async (req, res) => {
 router.post('/register', async (req, res) => {
     try {
         const { name, email, password, phone, companyName, companyAddress, gstNumber } = req.body;
+
+        // Validation
+        if (!name || !email || !password) {
+            return res.status(400).json({ success: false, message: 'Name, email and password are required' });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ success: false, message: 'Invalid email format' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+        }
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {

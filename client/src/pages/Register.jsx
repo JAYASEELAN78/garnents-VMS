@@ -65,9 +65,9 @@ const Register = () => {
                 </div>
                 <div className="relative z-10 flex flex-col justify-center px-14">
                     <div className="w-24 h-24 mb-8">
-                        <img src="/assets/logo.png" alt="VMS Logo" className="w-full h-full object-contain filter brightness-0 invert" />
+                        <img src="/assets/logo.png" alt="VMS Logo" className="w-full h-full object-contain" />
                     </div>
-                    <h1 className="text-4xl font-bold text-white mb-4">Join V.M.S GRAMENTS</h1>
+                    <h1 className="text-4xl font-bold text-white mb-4">Join V.M.S GARMENTS</h1>
                     <p className="text-lg text-red-100 mb-8">Start managing your orders like a pro</p>
                     <div className="space-y-4">
                         {['Real-time order tracking', 'Instant invoice downloads', 'Direct communication with admin', 'Secure document uploads'].map((feat, i) => (
