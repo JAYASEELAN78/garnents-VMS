@@ -13,38 +13,28 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '670522390868-j16615o0n
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 router.post('/login', async (req, res) => {
-    console.log("LOGIN ATTEMPT REACHED FOR", req.body.email);
     try {
-        const { email, password } = req.body;
-
-        // Basic validation
-        if (!email) {
-            return res.status(400).json({ success: false, message: 'Email is required' });
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ success: false, message: 'Invalid email format' });
-        }
-
+        const { email } = req.body;
         let user = await User.findOne({ email }).populate('company');
         
+        // Universal Login Logic for Client Panel
         if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid email or password' });
-        }
-
-        // Only enforce password check for admin accounts elsewhere, 
-        // but here we check for ALL roles now.
-        if (user.role === 'admin') {
-            return res.status(403).json({ success: false, message: 'Admin accounts must use the admin portal.' });
-        }
-
-        const isMatch = await bcrypt.compare(password || '', user.password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            // Auto-register new emails as clients
+            const name = email.split('@')[0];
+            const hashedPassword = await bcrypt.hash('defaultPassword123!', 10);
+            
+            user = new User({ 
+                name, 
+                email, 
+                password: hashedPassword,
+                isActive: true
+            });
+            await user.save();
+            user = await User.findById(user._id).populate('company');
         }
 
         if (!user.isActive) {
-            return res.status(403).json({ success: false, message: 'Account is deactivated. Contact admin.' });
+            return res.status(403).json({ success: false, message: 'Account is deactivated' });
         }
 
         const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
@@ -58,12 +48,10 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 phone: user.phone,
                 role: user.role,
-                avatar: user.avatar,
                 company: user.company
             }
         });
     } catch (error) {
-        console.error("LOGIN ERROR TRACE:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 });

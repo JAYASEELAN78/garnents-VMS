@@ -10,48 +10,26 @@ const Login = () => {
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [errors, setErrors] = useState({})
     const { login } = useAuth()
-
-    const validateForm = () => {
-        const newErrors = {}
-        if (!email) {
-            newErrors.email = 'Email is required'
-        } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = 'Please enter a valid email address'
-        }
-
-        if (!password) {
-            newErrors.password = 'Password is required'
-        }
-
-        setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
-    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!validateForm()) return
-        
+        if (!email || !password) return toast.error('Please fill all fields')
         setLoading(true)
         try {
             const user = await login(email, password)
             toast.success('Welcome back!')
 
-            // Give a small delay to ensure token is stored
-            setTimeout(() => {
-                // Redirect admins to the Admin Panel
-                if (user?.role === 'admin') {
-                    const adminUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174'
-                    window.location.href = adminUrl
-                    return
-                }
-                navigate('/dashboard')
-            }, 100)
+            // Redirect admins to the Admin Panel
+            if (user?.role === 'admin') {
+                const adminUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174'
+                window.location.href = adminUrl
+                return
+            }
+
+            navigate('/dashboard')
         } catch (err) {
-            const message = err.response?.data?.message || 'Login failed'
-            setErrors({ auth: 'Invalid user. Please enter the correct email address.' })
-            toast.error('Login failed. Please check your credentials.')
+            toast.error(err.response?.data?.message || 'Login failed')
         } finally {
             setLoading(false)
         }
@@ -67,7 +45,7 @@ const Login = () => {
                 </div>
                 <div className="relative z-10 flex flex-col justify-center px-16">
                     <div className="w-20 h-20 mb-8">
-                        <img src="/assets/logo.png" alt="VMS Logo" className="w-full h-full object-contain" />
+                        <img src="/assets/logo.png" alt="VMS Logo" className="w-full h-full object-contain filter brightness-0 invert" />
                     </div>
                     <h1 className="text-4xl font-bold text-white mb-4">V.M.S GARMENTS</h1>
                     <p className="text-xl text-red-100 mb-8">Order Management System</p>
@@ -95,75 +73,33 @@ const Login = () => {
                     </div>
 
                     <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome back</h2>
-                    <p className="text-gray-500 mb-6">Sign in to your account to continue</p>
+                    <p className="text-gray-500 mb-8">Sign in to your account to continue</p>
 
-                    {errors.auth && (
-                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                            <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0 mt-0.5">
-                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </div>
-                            <p className="text-sm text-red-800 font-medium leading-relaxed">{errors.auth}</p>
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Address</label>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">Email Address</label>
                             <div className="relative">
-                                <HiOutlineMail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${errors.email ? 'text-red-500' : 'text-gray-400'}`} />
-                                <input 
-                                    type="email" 
-                                    value={email} 
-                                    onChange={(e) => {
-                                        setEmail(e.target.value)
-                                        if (errors.email) setErrors({ ...errors, email: '' })
-                                    }}
-                                    className={`input-field pl-12 transition-all ${
-                                        errors.email 
-                                        ? 'border-red-300 focus:border-red-500 ring-1 ring-red-100 bg-red-50/20' 
-                                        : 'focus:border-red-600'
-                                    }`} 
-                                    placeholder="you@company.com" 
-                                />
+                                <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                                    className="input-field pl-12" placeholder="you@company.com" />
                             </div>
-                            {errors.email && <p className="mt-1.5 text-xs text-red-600 font-medium ml-1">{errors.email}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1.5">Password</label>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">Password</label>
                             <div className="relative">
-                                <HiOutlineLockClosed className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${errors.password ? 'text-red-500' : 'text-gray-400'}`} />
-                                <input 
-                                    type={showPassword ? 'text' : 'password'} 
-                                    value={password} 
-                                    onChange={(e) => {
-                                        setPassword(e.target.value)
-                                        if (errors.password) setErrors({ ...errors, password: '' })
-                                    }}
-                                    className={`input-field pl-12 pr-12 transition-all ${
-                                        errors.password 
-                                        ? 'border-red-300 focus:border-red-500 ring-1 ring-red-100 bg-red-50/20' 
-                                        : 'focus:border-red-600'
-                                    }`} 
-                                    placeholder="••••••••" 
-                                />
+                                <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
+                                    className="input-field pl-12 pr-12" placeholder="••••••••" />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                     {showPassword ? <HiOutlineEyeOff className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
                                 </button>
                             </div>
-                            {errors.password && <p className="mt-1.5 text-xs text-red-600 font-medium ml-1">{errors.password}</p>}
                         </div>
-                        <div className="pt-2">
-                            <button type="submit" disabled={loading}
-                                className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]">
-                                {loading ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        <span>Signing In...</span>
-                                    </div>
-                                ) : 'Sign In'}
-                            </button>
-                        </div>
+                        <button type="submit" disabled={loading}
+                            className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Sign In'}
+                        </button>
                     </form>
 
                     <p className="mt-8 text-center text-gray-500">
