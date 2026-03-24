@@ -38,23 +38,20 @@ const Login = () => {
             const user = await login(email, password)
             toast.success('Welcome back!')
 
-            // Redirect admins to the Admin Panel
-            if (user?.role === 'admin') {
-                const adminUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174'
-                window.location.href = adminUrl
-                return
-            }
-
-            navigate('/dashboard')
+            // Give a small delay to ensure token is stored
+            setTimeout(() => {
+                // Redirect admins to the Admin Panel
+                if (user?.role === 'admin') {
+                    const adminUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174'
+                    window.location.href = adminUrl
+                    return
+                }
+                navigate('/dashboard')
+            }, 100)
         } catch (err) {
             const message = err.response?.data?.message || 'Login failed'
-            if (message.toLowerCase().includes('email')) {
-                setErrors({ email: message })
-            } else if (message.toLowerCase().includes('password')) {
-                setErrors({ password: message })
-            } else {
-                toast.error(message)
-            }
+            setErrors({ auth: 'Invalid user. Please enter the correct email address.' })
+            toast.error('Login failed. Please check your credentials.')
         } finally {
             setLoading(false)
         }
@@ -98,7 +95,16 @@ const Login = () => {
                     </div>
 
                     <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome back</h2>
-                    <p className="text-gray-500 mb-8">Sign in to your account to continue</p>
+                    <p className="text-gray-500 mb-6">Sign in to your account to continue</p>
+
+                    {errors.auth && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                            <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0 mt-0.5">
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </div>
+                            <p className="text-sm text-red-800 font-medium leading-relaxed">{errors.auth}</p>
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                         <div>
