@@ -28,38 +28,19 @@ router.post('/login', async (req, res) => {
 
         let user = await User.findOne({ email }).populate('company');
         
-        // Universal Login Logic for Client Panel
         if (!user) {
-            // Auto-register new emails as clients
-            const name = email.split('@')[0];
-            const hashedPassword = await bcrypt.hash('defaultPassword123!', 10);
-            
-            user = new User({ 
-                name, 
-                email, 
-                password: hashedPassword,
-                role: 'client',
-                isActive: true
-            });
+            return res.status(401).json({ success: false, message: 'Invalid email or password' });
+        }
 
-            const company = new Company({
-                name: `${name}'s Company`,
-                email,
-                phone: ''
-            });
+        // Only enforce password check for admin accounts elsewhere, 
+        // but here we check for ALL roles now.
+        if (user.role === 'admin') {
+            return res.status(403).json({ success: false, message: 'Admin accounts must use the admin portal.' });
+        }
 
-            await company.save();
-            user.company = company._id;
-            await user.save();
-            
-            user = await User.findById(user._id).populate('company');
-        } else {
-            // Only enforce password check for admin accounts
-            if (user.role === 'admin') {
-                // Admins should use the /admin/login endpoint
-                return res.status(403).json({ success: false, message: 'Admin accounts must use the admin portal.' });
-            }
-            // For all other roles (client, staff, etc.) — bypass password check (Universal Login)
+        const isMatch = await bcrypt.compare(password || '', user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
 
         if (!user.isActive) {
